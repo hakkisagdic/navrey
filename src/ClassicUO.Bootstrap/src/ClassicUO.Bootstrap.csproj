@@ -23,7 +23,10 @@
 
   <ItemGroup>
     <Reference Include="cuoapi">
-      <HintPath>..\..\..\external\cuoapi\cuoapi.dll</HintPath>
+      <!-- cuoapi.dll is IL only but marked x64, which .NET on arm64 refuses to load: arm64/ holds the same
+           assembly marked ARM64 (PE machine 0xAA64). -->
+      <HintPath Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">..\..\..\external\cuoapi\arm64\cuoapi.dll</HintPath>
+      <HintPath Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' != 'Arm64'">..\..\..\external\cuoapi\cuoapi.dll</HintPath>
     </Reference>
   </ItemGroup>
 
