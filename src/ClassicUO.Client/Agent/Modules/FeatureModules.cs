@@ -51,6 +51,10 @@ namespace ClassicUO.Agent.Modules
         /// <summary>Per-frame work of whatever is on. Game thread, from AgentHost.PumpGameThread.</summary>
         public static void Pump(World world)
         {
+            if (Switches.Overlay)
+            {
+                MobileOverlay.Pump(world);
+            }
         }
 
         /// <summary>Stops everything that runs, flushing what has files open. Called when the agent host shuts down.</summary>
