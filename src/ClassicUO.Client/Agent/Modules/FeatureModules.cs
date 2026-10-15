@@ -51,6 +51,8 @@ namespace ClassicUO.Agent.Modules
         /// <summary>Per-frame work of whatever is on. Game thread, from AgentHost.PumpGameThread.</summary>
         public static void Pump(World world)
         {
+            Hud.Pump();
+
             if (Switches.Overlay)
             {
                 MobileOverlay.Pump(world);

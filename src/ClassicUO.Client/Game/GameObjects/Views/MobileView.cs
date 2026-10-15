@@ -25,7 +25,7 @@ namespace ClassicUO.Game.GameObjects
 
         public override bool Draw(UltimaBatcher2D batcher, int posX, int posY, float depth)
         {
-            if (IsDestroyed || !AllowedToDraw)
+            if (IsDestroyed || !AllowedToDraw || (PlayerMobile.HideFromView && this is PlayerMobile))
             {
                 return false;
             }

@@ -15,6 +15,12 @@ namespace ClassicUO.Game.GameObjects
 {
     internal class PlayerMobile : Mobile
     {
+        /// <summary>
+        /// Leaves the player's own character out of the world view while true - the agent's
+        /// `hud hide player`, for clean video frames. Off unless that command turns it on.
+        /// </summary>
+        public static bool HideFromView;
+
         private readonly Dictionary<BuffIconType, BuffIcon> _buffIcons = new Dictionary<BuffIconType, BuffIcon>();
 
         public PlayerMobile(World world, uint serial) : base(world, serial)
