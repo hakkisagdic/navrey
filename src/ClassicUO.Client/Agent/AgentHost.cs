@@ -85,6 +85,8 @@ namespace ClassicUO.Agent
             Output.Raw(
                 $"=== ClassicUO agent ready - commands: {cmdFile}, log: {logFile}, " +
                 $"state: {StateFile.Path}, world: {WorldFile.Path} ===");
+
+            Modules.FeatureModules.Start();
         }
 
         /// <summary>
@@ -128,6 +130,8 @@ namespace ClassicUO.Agent
             Narrator.Update(world);
 
             _dispatcher.Pump();
+
+            Modules.FeatureModules.Pump(world);
 
             long t2 = Stopwatch.GetTimestamp();
 
@@ -280,6 +284,7 @@ namespace ClassicUO.Agent
             _worker?.Join(1000);
 
             // Before the daemon, which closes the log Output writes to.
+            Modules.FeatureModules.Stop();
             StateFile.Stop();
             WorldFile.Stop();
 

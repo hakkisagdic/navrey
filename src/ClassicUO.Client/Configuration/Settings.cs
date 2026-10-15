@@ -96,6 +96,9 @@ namespace ClassicUO.Configuration
         
         [JsonPropertyName("files_override")] public string OverrideFile { get; set; }
 
+        /// <summary>Opt-in client features, all off unless settings.json switches them on.</summary>
+        [JsonPropertyName("features")] public FeatureSwitches Features { get; set; } = new FeatureSwitches();
+
         public static string GetSettingsFilepath()
         {
             if (CustomSettingsFilepath != null)
@@ -121,5 +124,22 @@ namespace ClassicUO.Configuration
             // is worth that: the on-disk file stays exactly as the user wrote it.
             Log.Trace("settings.json is read-only to the client - not saving");
         }
+    }
+
+    /// <summary>
+    /// The `features` block of settings.json. Every switch defaults to off, and a feature that is
+    /// off registers nothing at all, so a settings.json without the block runs the client exactly as
+    /// before. Read once when the agent starts; change the file and restart to switch one.
+    /// </summary>
+    internal sealed class FeatureSwitches
+    {
+        /// <summary>While `record` runs, log every player action next to the video as JSON lines.</summary>
+        [JsonPropertyName("action_log")] public bool ActionLog { get; set; }
+
+        /// <summary>Plan `travel` and long `goto` walks over the whole map before walking them leg by leg.</summary>
+        [JsonPropertyName("world_pathfinder")] public bool WorldPathfinder { get; set; }
+
+        /// <summary>Draw each mobile's name and hit-point bar over it.</summary>
+        [JsonPropertyName("overlay")] public bool Overlay { get; set; }
     }
 }
