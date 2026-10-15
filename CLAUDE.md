@@ -46,6 +46,8 @@ from the working directory):
 | `-agent` | Host the command engine and its file daemon |
 | `-headless` | As `-agent`, plus start with the window hidden |
 | `-cmdfile` / `-logfile` / `-statefile` / `-worldfile <path>` | Override the four files below |
+| `-agentdir <dir>` | All four files in one directory under their usual names (also `CUO_AGENT_DIR`); a per-file flag still wins |
+| `-packetlog [ids]` | Log packets to `Logs/Network/`; `-packetlog 0x02,0xAD` logs only those ids |
 
 **`navrey` is a separate binary and does not rebuild with the client.** If commands start failing
 in ways that look like a protocol mismatch, rebuild it — a stale `navrey` against a current client
@@ -60,8 +62,28 @@ has already caused exactly that.
 /tmp/cuoworld.json   nearby mobiles + movable ground items
 ```
 
-Overridable with `-cmdfile` / `-logfile` / `-statefile` / `-worldfile`. Running two clients at once
-needs all of them overridden, or they fight over one character and stomp each other's files.
+Overridable with `-cmdfile` / `-logfile` / `-statefile` / `-worldfile`, or all at once with
+`-agentdir <dir>` (or `CUO_AGENT_DIR`). Running two clients at once needs all of them moved, or they
+fight over one character and stomp each other's files.
+
+## Optional features
+
+`settings.json` may carry a `features` block. Every switch defaults to off, and a feature that is
+off registers nothing - no hook, no per-frame work, no log line - so without the block the client
+behaves exactly as before. They are read when the client starts; change the file and restart.
+
+```json
+"features": { "action_log": true, "world_pathfinder": true, "overlay": true }
+```
+
+| Switch | What it does |
+|---|---|
+| `action_log` | While `record` runs, every player action the client sends (walk, use, attack, target, speech, gump replies, locks, ...) goes as one JSON line into `x.actions.jsonl` beside `x.mp4` (or `actions.jsonl` in a frame folder): wall-clock `t`, the video `frame` index, `source` (`agent` when a bridge command sent it, `human` otherwise), the action's fields and a small `state` snapshot. Watches outgoing packets, so the game window, macros and the CLI are all caught. |
+| `world_pathfinder` | `travel` and `goto` beyond one hop plan the whole route over the map files first (coarse: land and statics, no items), then walk it in legs with the exact planner. No route, or a route that keeps getting stuck, falls back to the straight-line hops. |
+| `overlay` | Names in notoriety colour and hit-point bars over every mobile on screen, drawn by the agent, independent of the character's own name and health-line options. |
+
+Modules live in `src/ClassicUO.Client/Agent/Modules/<Name>/`, started by `FeatureModules` with the
+agent host.
 
 ## Reading state: prefer the file over a command
 
@@ -280,6 +302,9 @@ scripts; the default stops it.
 | `drop` / `get` | Confirm by listing the **destination**, not the source: an item is briefly absent from the source in transit, so a move that bounces back still looks like it left. |
 | `gumps` / `gumpresponse` / `contextmenu` / `contextpick` / `prompt` | Server gumps, right-click menus and text prompts; everything in the game that is a dialog rather than an action goes through these. |
 | `state` / `world` | The state file's path and current contents; login state, map and entity counts. |
+| `skilllock` / `statlock` | `skilllock <skill name or id> <up\|down\|locked>`, `statlock <str\|dex\|int> <up\|down\|locked>`: the lock arrows of the skills and status gumps. `skills` shows the result once the server echoes it; `status` ends with the stat locks and stat cap. |
+| `newchar <name> [profession]` | Creates a character on an account with a free slot (preset profession, default warrior; first starting city) through the client's own creation screen, then logs in. A fresh account lands on that screen by itself. |
+| `hud [hide\|show] [windows\|overlay\|cursor\|player\|all]` | Clean video frames: hides windows (except the world view; new ones too), the overlay, the mouse pointer or the player's own character; `hud show` restores exactly what it hid. `hud hide` alone is windows and cursor. |
 
 `[CMD-END]` means **the handler returned**, not that the server has finished reacting. Everything
 outside the `[CMD]` / `[CMD-END]` brackets is packet narration arriving on its own schedule and is
@@ -323,15 +348,19 @@ The agent layer is `src/ClassicUO.Client/Agent/`:
 | `Capabilities/Movement/` | Route planning and walking: `Navigator` (the walk thread), `Navigation`, `GridPathfinder`, `PathGrid`, `MapResidency`, `LineOfSight` |
 | `Capabilities/Poi/` | Point-of-interest data and its lookups |
 | `Capabilities/` | `MobNames` and `VendorStock`, our own tables kept apart from ClassicUO's |
+| `Modules/` | The opt-in features of the `features` block (`ActionLog`, `WorldPath`, `Overlay`) and the `hud` command's `Hud`, started by `FeatureModules` |
 
 Operational guides live in `.claude/skills/uo-*`. The full command list is `cli/navrey help`; the
 root `README.md` is written for players, not developers, and carries none of the internals above.
 
 ## Conventions that matter
 
-**Keep changes inside `Agent/`.** ClassicUO proper is touched in seven places only (`Main.cs`,
+**Keep changes inside `Agent/`.** ClassicUO proper is touched in a few places only (`Main.cs`,
 `GameController.cs`, `Client.cs`, `CUOEnviroment.cs`, one accessor in `PacketHandlers.cs`, the
-`poi_directory` property and the no-op `Save()` in `Configuration/Settings.cs`, one csproj entry). Nothing in ClassicUO references `Agent.Capabilities`. New agent features should add
+`poi_directory` property, the `features` block and the no-op `Save()` in `Configuration/Settings.cs`,
+one csproj entry, the `NetClient.OnSend` observer the action log listens on, the packet-id filter in
+`PacketLogger`, and `PlayerMobile.HideFromView` with its one check in `MobileView.Draw`). Each is
+inert until the agent uses it. Nothing in ClassicUO references `Agent.Capabilities`. New agent features should add
 zero engine touchpoints — `AgentHost.PumpGameThread()` is already called every frame, and
 `AgentSettings.ApplyDotEnv` already pre-scans argv, so a new per-frame feature or flag needs
 neither a new hook nor a `CUOEnviroment` field.
