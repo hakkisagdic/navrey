@@ -19,12 +19,22 @@ namespace ClassicUO.Agent
     internal static class AgentSettings
     {
         /// <summary>
+        /// Environment variable naming one directory for all four agent files, as -agentdir does;
+        /// the flag wins over it.
+        /// </summary>
+        public const string DIRECTORY_ENV = "CUO_AGENT_DIR";
+
+        /// <summary>
         /// Called after settings.json has loaded. Does nothing unless agent mode was requested;
         /// the flags are read straight from <paramref name="args"/> because the normal argument
         /// pass has not run yet.
         ///
         /// -statefile / -worldfile are picked up here rather than in Main's argument switch, so
         /// those files need no field on CUOEnviroment and touch no ClassicUO file.
+        ///
+        /// -agentdir &lt;dir&gt; (or CUO_AGENT_DIR) puts all four files - cuocmd, cuolog,
+        /// cuostate.json, cuoworld.json - in one directory under their usual names, so a second
+        /// client can run beside the first with its own files. A per-file flag still wins.
         /// </summary>
         public static void ApplyDotEnv(string[] args)
         {
@@ -36,6 +46,7 @@ namespace ClassicUO.Agent
             bool noAutoLogin = false;
             string stateFile = null;
             string worldFile = null;
+            string directory = null;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -53,6 +64,11 @@ namespace ClassicUO.Agent
                 else if (arg == "-statefile" && i + 1 < args.Length)
                 {
                     stateFile = args[i + 1];
+                    wanted = true;
+                }
+                else if (arg == "-agentdir" && i + 1 < args.Length)
+                {
+                    directory = args[i + 1];
                     wanted = true;
                 }
                 else if (arg == "-autologin" && i + 1 < args.Length)
@@ -130,6 +146,8 @@ namespace ClassicUO.Agent
                 CUOEnviroment.SkipLoginScreen = false;
             }
 
+            UseDirectory(directory ?? Environment.GetEnvironmentVariable(DIRECTORY_ENV), stateFile, worldFile);
+
             if (!string.IsNullOrEmpty(stateFile))
             {
                 StateFile.Configure(stateFile);
@@ -138,6 +156,35 @@ namespace ClassicUO.Agent
             if (!string.IsNullOrEmpty(worldFile))
             {
                 WorldFile.Configure(worldFile);
+            }
+        }
+
+        /// <summary>
+        /// Points every file no flag named into <paramref name="directory"/>, creating it. The
+        /// command and log files are left alone when -cmdfile / -logfile already set them; Main reads
+        /// those flags again after this, so they win either way.
+        /// </summary>
+        private static void UseDirectory(string directory, string stateFile, string worldFile)
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return;
+            }
+
+            directory = Path.GetFullPath(directory);
+            Directory.CreateDirectory(directory);
+
+            CUOEnviroment.AgentCommandFile ??= Path.Combine(directory, Path.GetFileName(Daemon.DEFAULT_COMMAND_FILE));
+            CUOEnviroment.AgentLogFile ??= Path.Combine(directory, Path.GetFileName(Daemon.DEFAULT_LOG_FILE));
+
+            if (string.IsNullOrEmpty(stateFile))
+            {
+                StateFile.Configure(Path.Combine(directory, Path.GetFileName(StateFile.DEFAULT_STATE_FILE)));
+            }
+
+            if (string.IsNullOrEmpty(worldFile))
+            {
+                WorldFile.Configure(Path.Combine(directory, Path.GetFileName(WorldFile.DEFAULT_WORLD_FILE)));
             }
         }
 

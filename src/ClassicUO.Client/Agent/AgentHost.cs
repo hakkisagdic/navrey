@@ -61,7 +61,7 @@ namespace ClassicUO.Agent
                 Utility.Logging.Log.Error(
                     $"agent: {cmdFile} is already owned by {heldBy}. Not starting the CLI daemon - " +
                     "two clients would fight over one character and corrupt the log. " +
-                    "Stop the other client first, or pass -cmdfile/-logfile to use different files.");
+                    "Stop the other client first, or give this one its own files with -agentdir <dir>.");
 
                 return;
             }
