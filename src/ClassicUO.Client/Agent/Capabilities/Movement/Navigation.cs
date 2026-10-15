@@ -96,6 +96,20 @@ namespace ClassicUO.Agent.Capabilities
         public static bool Travel(CommandContext ctx, int tx, int ty,
                                   HashSet<(int x, int y)> avoid = null, int? tz = null)
         {
+            // The world_pathfinder feature plans the whole route first. With it off, or when it
+            // finds no route, the journey goes in straight-line hops as it always has.
+            bool routing = Modules.FeatureModules.Switches.WorldPathfinder;
+
+            if (routing)
+            {
+                bool? routed = Modules.RoutedTravel.Travel(ctx, tx, ty, avoid, tz);
+
+                if (routed != null)
+                {
+                    return routed.Value;
+                }
+            }
+
             while (!ctx.Cancel.IsCancellationRequested)
             {
                 var here = Position(ctx);
@@ -161,6 +175,20 @@ namespace ClassicUO.Agent.Capabilities
                 }
 
                 ctx.ClearFailure();
+
+                // A route the map files could not see from the start (an upper floor, the inside of
+                // a building) usually exists one hop later: try routing once more from here.
+                if (routing)
+                {
+                    routing = false;
+
+                    bool? routed = Modules.RoutedTravel.Travel(ctx, tx, ty, avoid, tz);
+
+                    if (routed != null)
+                    {
+                        return routed.Value;
+                    }
+                }
             }
 
             return false;
