@@ -545,6 +545,9 @@ namespace ClassicUO
 
             _renderTargets.Draw(_uoSpriteBatch);
 
+            // The finished frame, for a video of the session (the agent's `record` command).
+            Agent.FrameRecorder.Capture(GraphicsDevice, GraphicManager.PreferredBackBufferWidth, GraphicManager.PreferredBackBufferHeight);
+
             Profiler.ExitContext(Profiler.ProfilerContext.RENDER_FRAME);
             Profiler.EnterContext(Profiler.ProfilerContext.OUT_OF_CONTEXT);
 

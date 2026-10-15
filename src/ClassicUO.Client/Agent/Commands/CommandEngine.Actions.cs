@@ -205,6 +205,46 @@ namespace ClassicUO.Agent
                 ctx.Print("Game window hidden");
             });
 
+            Register("record", "record <file.mp4|dir> [fps] | record stop",
+                     "Record the game's own frames (default 4 a second): into an .mp4 through ffmpeg, or as JPEGs into a folder; `record stop` ends it", ctx =>
+            {
+                string arg = ctx.Arg(0);
+
+                if (string.IsNullOrWhiteSpace(arg))
+                {
+                    ctx.Warn("usage: record <dir> [fps] | record stop");
+
+                    return;
+                }
+
+                if (string.Equals(arg, "stop", StringComparison.OrdinalIgnoreCase))
+                {
+                    int dropped = ctx.Game(_ => FrameRecorder.Dropped);
+                    int frames = ctx.Game(_ => FrameRecorder.Stop());
+                    ctx.Print($"Recording stopped: {frames} frames" + (dropped > 0 ? $", {dropped} dropped" : ""));
+
+                    return;
+                }
+
+                double fps = 4;
+
+                if (ctx.ArgCount > 1 && (!double.TryParse(ctx.Arg(1), NumberStyles.Float, CultureInfo.InvariantCulture, out fps) || fps <= 0 || fps > 30))
+                {
+                    ctx.Warn("fps must be a number from 0 to 30");
+
+                    return;
+                }
+
+                string dir = Path.GetFullPath(arg);
+                ctx.Game(_ =>
+                {
+                    FrameRecorder.Start(dir, fps);
+
+                    return 0;
+                });
+                ctx.Print($"Recording {fps.ToString(CultureInfo.InvariantCulture)} frames a second into {dir}");
+            });
+
             Register("verbose", "verbose", "Show trace-level output", ctx =>
             {
                 Output.MinLevel = AgentLogLevel.Trace;
