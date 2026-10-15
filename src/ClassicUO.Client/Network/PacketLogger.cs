@@ -12,7 +12,33 @@ namespace ClassicUO.Network
 
         private LogFile _logFile;
 
+        /// <summary>Packet ids to log when <see cref="_filtered"/>; every id otherwise.</summary>
+        private readonly bool[] _only = new bool[256];
+        private bool _filtered;
+
         public bool Enabled { get; set; }
+
+        /// <summary>
+        /// Restricts the log to the comma-separated packet ids in <paramref name="ids"/>, written
+        /// as hex with or without 0x ("0x02,AD,1c"). Account packets stay hidden either way.
+        /// </summary>
+        public void LogOnly(string ids)
+        {
+            foreach (string part in ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                string hex = part.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? part.Substring(2) : part;
+
+                if (byte.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out byte id))
+                {
+                    _only[id] = true;
+                    _filtered = true;
+                }
+                else
+                {
+                    Utility.Logging.Log.Warn($"-packetlog: '{part}' is not a packet id");
+                }
+            }
+        }
 
 
 
@@ -24,7 +50,7 @@ namespace ClassicUO.Network
 
         public void Log(Span<byte> message, bool toServer)
         {
-            if (!Enabled) return;
+            if (!Enabled || (_filtered && !_only[message[0]])) return;
 
             Span<char> span = stackalloc char[256];
             var output = new ValueStringBuilder(span);

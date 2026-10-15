@@ -386,6 +386,12 @@ namespace ClassicUO
                         PacketLogger.Default.Enabled = true;
                         PacketLogger.Default.CreateFile();
 
+                        // -packetlog 0x02,0xAD,1C logs only those packet ids; no list logs them all.
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            PacketLogger.Default.LogOnly(value);
+                        }
+
                         break;
 
                     case "language":
