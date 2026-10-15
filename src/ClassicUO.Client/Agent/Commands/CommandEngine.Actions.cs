@@ -72,7 +72,8 @@ namespace ClassicUO.Agent
                         $"Stamina: {p.Stamina}/{p.StaminaMax}",
                         $"STR/DEX/INT: {p.Strength}/{p.Dexterity}/{p.Intelligence}",
                         $"Gold:    {p.Gold}   Weight: {p.Weight}/{p.WeightMax}",
-                        $"War mode: {(p.InWarMode ? "ON" : "off")}"
+                        $"War mode: {(p.InWarMode ? "ON" : "off")}",
+                        $"Stat locks: STR {LockName(p.StrLock)} / DEX {LockName(p.DexLock)} / INT {LockName(p.IntLock)}   Stat cap: {p.StatsCap}"
                     };
                 }))
                 {
