@@ -220,9 +220,20 @@ namespace ClassicUO.Agent
 
                 if (string.Equals(arg, "stop", StringComparison.OrdinalIgnoreCase))
                 {
-                    int dropped = ctx.Game(_ => FrameRecorder.Dropped);
-                    int frames = ctx.Game(_ => FrameRecorder.Stop());
+                    (int frames, int dropped, string log, int actions) = ctx.Game(_ =>
+                    {
+                        int lost = FrameRecorder.Dropped;
+                        string path = Modules.ActionLog.Path;
+                        int kept = FrameRecorder.Stop();
+
+                        return (kept, lost, path, Modules.ActionLog.Stop(kept, lost));
+                    });
                     ctx.Print($"Recording stopped: {frames} frames" + (dropped > 0 ? $", {dropped} dropped" : ""));
+
+                    if (log != null)
+                    {
+                        ctx.Print($"Action log: {actions} actions in {log}");
+                    }
 
                     return;
                 }
@@ -237,13 +248,19 @@ namespace ClassicUO.Agent
                 }
 
                 string dir = Path.GetFullPath(arg);
-                ctx.Game(_ =>
+                string actionLog = ctx.Game(_ =>
                 {
                     FrameRecorder.Start(dir, fps);
 
-                    return 0;
+                    // Null unless settings.json switches the action log on.
+                    return Modules.ActionLog.Start(dir, fps);
                 });
                 ctx.Print($"Recording {fps.ToString(CultureInfo.InvariantCulture)} frames a second into {dir}");
+
+                if (actionLog != null)
+                {
+                    ctx.Print($"Logging actions into {actionLog}");
+                }
             });
 
             Register("verbose", "verbose", "Show trace-level output", ctx =>

@@ -99,6 +99,9 @@ namespace ClassicUO.Agent
         /// <summary>Frames dropped because ffmpeg could not keep up.</summary>
         public static int Dropped => _dropped;
 
+        /// <summary>Frames kept so far: the index the next kept frame will have in the video or folder.</summary>
+        public static int FramesKept => _count;
+
         public static void Capture(GraphicsDevice device, int width, int height)
         {
             if (!Recording || _clock.ElapsedMilliseconds < _next || width <= 0 || height <= 0)

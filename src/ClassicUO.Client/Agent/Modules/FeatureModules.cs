@@ -56,6 +56,7 @@ namespace ClassicUO.Agent.Modules
         /// <summary>Stops everything that runs, flushing what has files open. Called when the agent host shuts down.</summary>
         public static void Stop()
         {
+            ActionLog.Stop(FrameRecorder.FramesKept, FrameRecorder.Dropped);
         }
     }
 }

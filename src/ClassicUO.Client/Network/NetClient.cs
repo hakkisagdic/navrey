@@ -34,6 +34,16 @@ namespace ClassicUO.Network
 
         public static NetClient Socket { get; private set; } = new();
 
+        /// <summary>Called with each packet <see cref="Send"/> puts on the wire.</summary>
+        public delegate void SendObserver(ReadOnlySpan<byte> packet);
+
+        /// <summary>
+        /// Sees every outgoing packet after plugins have had it and before it is encrypted. Null
+        /// unless something is listening (the agent's action log, while it records); an observer
+        /// must not throw, and must not keep the span past the call.
+        /// </summary>
+        public static SendObserver OnSend;
+
         public EncryptionType Load(ClientVersion clientVersion, EncryptionType encryption)
         {
             PacketsTable = new PacketsTable(clientVersion);
@@ -233,6 +243,7 @@ namespace ClassicUO.Network
                 return;
 
             PacketLogger.Default?.Log(message, true);
+            OnSend?.Invoke(message);
 
             if (!skipEncryption)
             {

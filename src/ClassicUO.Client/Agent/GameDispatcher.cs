@@ -38,6 +38,12 @@ namespace ClassicUO.Agent
         public string LastMaxActionLabel { get; private set; }
 
         /// <summary>
+        /// True while <see cref="Pump"/> runs a command's work on the game thread - which is how
+        /// the action log tells what the agent sent from what the player did. Game thread only.
+        /// </summary>
+        public static bool RunningAgentWork { get; private set; }
+
+        /// <summary>
         /// Drains every pending action. Called once per frame from the game thread.
         /// Drains the whole queue rather than one item per frame, so a command that marshals several
         /// operations in a row is not spread across several frames.
@@ -53,12 +59,17 @@ namespace ClassicUO.Agent
 
                 try
                 {
+                    RunningAgentWork = true;
                     entry.run();
                 }
                 catch (Exception ex)
                 {
                     // An exception here would otherwise kill the game loop for a CLI typo.
                     Output.Error($"agent action failed: {ex.Message}");
+                }
+                finally
+                {
+                    RunningAgentWork = false;
                 }
 
                 double ms = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
